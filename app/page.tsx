@@ -3,23 +3,26 @@
 import Image from "next/image";
 import Link from "next/link";
 import Navbar from "./components/Navbar";
-import { getPosts, deletePost, getAllTags } from "./services/posts";
+import { getPosts, getAllTags } from "./services/posts";
 import { useEffect, useState } from "react";
 
+interface Post {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  date: string;
+  image: string;
+  isNewest: boolean;
+  isFeatured: boolean;
+}
+
 export default function Home() {
-  const [blogPosts, setBlogPosts] = useState<{
-    id: string;
-    title: string;
-    content: string;
-    date: string;
-    tags: string[];
-    isFeatured: boolean;
-  }[]>([]);
+  const [blogPosts, setBlogPosts] = useState<Post[]>([]);
   const [selectedTag, setSelectedTag] = useState('all');
   const [tags, setTags] = useState<string[]>([]);
 
   useEffect(() => {
-    document.title = '主页';
     const fetchData = () => {
       const posts = getPosts(selectedTag);
       setBlogPosts(posts);
@@ -82,13 +85,18 @@ export default function Home() {
             <div className="lg:w-3/4">
               <div className="space-y-8">
                 {blogPosts.map((post) => (
-                  <Link href={`/blog/${post.id}`} key={post.id} className="block">
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.id}`}
+                    className="block"
+                  >
                     <div className="relative flex items-start space-x-6 p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200">
-
                       <div className="flex-1">
                         <div className="mb-2">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-semibold text-gray-900">{post.title}</h3>
+                            <span className="text-xl font-semibold text-gray-900 hover:text-blue-600">
+                              {post.title}
+                            </span>
                             {post.isFeatured && (
                               <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Featured</span>
                             )}

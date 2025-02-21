@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { getDeletedPosts, restorePost, permanentlyDeletePost } from '@/app/services/posts';
 import Navbar from '@/app/components/Navbar';
-import Link from 'next/link';
 
 interface Post {
   id: string;

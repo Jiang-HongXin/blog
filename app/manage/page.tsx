@@ -1,9 +1,8 @@
 'use client';
 
-import Image from "next/image";
 import Link from "next/link";
 import Navbar from "../components/Navbar";
-import { getPosts, deletePost, getAllTags } from "../services/posts";
+import { getPosts, deletePost, getAllTags, updatePostDate } from "../services/posts";
 import { useEffect, useState } from "react";
 
 export default function ManagePage() {
@@ -31,7 +30,8 @@ export default function ManagePage() {
   }, [selectedTag]);
 
   const handleDateChange = (postId: string, newDate: string) => {
-    // TODO: 实现修改文章日期的功能
+    updatePostDate(postId, newDate);
+    setBlogPosts(getPosts(selectedTag));
     setEditingDate(null);
   };
 

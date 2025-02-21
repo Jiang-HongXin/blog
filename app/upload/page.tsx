@@ -92,7 +92,7 @@ export default function UploadPage() {
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
       fileInputRef.current.files = dataTransfer.files;
-      handleFileUpload({ target: { files: dataTransfer.files } } as any);
+      handleFileUpload({ target: { files: dataTransfer.files } } as React.ChangeEvent<HTMLInputElement>);
     }
   };
 

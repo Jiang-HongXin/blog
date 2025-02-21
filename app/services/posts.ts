@@ -41,9 +41,12 @@ export const getDeletedPosts = (): Post[] => {
   }
 };
 
-export const addPost = (post: Omit<Post, 'id' | 'date' | 'image' | 'isNewest' | 'isFeatured' | 'isDeleted' | 'deletedAt'>): Post => {
+export const addPost = (postData: Omit<Post, 'id' | 'date' | 'image' | 'isNewest' | 'isFeatured' | 'isDeleted' | 'deletedAt'>): Post => {
+  const { title, content, tags = [], isFeatured = false } = postData;
   const newPost: Post = {
-    ...post,
+    title,
+    content,
+    tags,
     id: Date.now().toString(),
     date: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19),
     image: '/true-duck.png',
@@ -88,6 +91,20 @@ export const restorePost = (id: string): void => {
     if (post.id === id) {
       const { isDeleted, deletedAt, ...restoredPost } = post;
       return restoredPost;
+    }
+    return post;
+  });
+  localStorage.setItem(POSTS_STORAGE_KEY, JSON.stringify(updatedPosts));
+};
+
+export const updatePostDate = (id: string, newDate: string): void => {
+  const posts = getPosts(undefined, true);
+  const updatedPosts = posts.map(post => {
+    if (post.id === id) {
+      return {
+        ...post,
+        date: newDate
+      };
     }
     return post;
   });
