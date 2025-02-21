@@ -145,6 +145,10 @@ export default function BlogPost() {
                       h5: ({ children }) => <h5 id={String(children).toLowerCase().replace(/\s+/g, '-')}>{children}</h5>,
                       h6: ({ children }) => <h6 id={String(children).toLowerCase().replace(/\s+/g, '-')}>{children}</h6>,
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                      img: ({ src, alt }) => {
+                        if (!src) return null;
+                        return <img src={src} alt={alt || ''} className="max-w-full h-auto" />;
+                      },
                     }}
                   >
                     {post.content}
