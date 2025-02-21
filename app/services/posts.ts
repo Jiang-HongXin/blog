@@ -42,7 +42,7 @@ export const getDeletedPosts = (): Post[] => {
 };
 
 export const addPost = (postData: Omit<Post, 'id' | 'date' | 'image' | 'isNewest' | 'isFeatured' | 'isDeleted' | 'deletedAt'>): Post => {
-  const { title, content, tags = [], isFeatured = false } = postData;
+  const { title, content, tags = [] } = postData;
   const newPost: Post = {
     title,
     content,

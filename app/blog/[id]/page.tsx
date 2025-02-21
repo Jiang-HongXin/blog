@@ -147,7 +147,18 @@ export default function BlogPost() {
                       strong: ({ children }) => <strong className="font-bold">{children}</strong>,
                       img: ({ src, alt }) => {
                         if (!src) return null;
-                        return <img src={src} alt={alt || ''} className="max-w-full h-auto" />;
+                        return (
+                          <div className="relative w-full h-auto">
+                            <Image
+                              src={src}
+                              alt={alt || ''}
+                              width={800}
+                              height={600}
+                              className="max-w-full h-auto"
+                              style={{ objectFit: 'contain' }}
+                            />
+                          </div>
+                        );
                       },
                     }}
                   >
