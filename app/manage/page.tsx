@@ -2,11 +2,11 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import Navbar from "./components/Navbar";
-import { getPosts, deletePost, getAllTags } from "./services/posts";
+import Navbar from "../components/Navbar";
+import { getPosts, deletePost, getAllTags } from "../services/posts";
 import { useEffect, useState } from "react";
 
-export default function Home() {
+export default function ManagePage() {
   const [blogPosts, setBlogPosts] = useState<{
     id: string;
     title: string;
@@ -17,9 +17,10 @@ export default function Home() {
   }[]>([]);
   const [selectedTag, setSelectedTag] = useState('all');
   const [tags, setTags] = useState<string[]>([]);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
 
   useEffect(() => {
-    document.title = '主页';
+    document.title = '管理文章';
     const fetchData = () => {
       const posts = getPosts(selectedTag);
       setBlogPosts(posts);
@@ -29,32 +30,18 @@ export default function Home() {
     fetchData();
   }, [selectedTag]);
 
+  const handleDateChange = (postId: string, newDate: string) => {
+    // TODO: 实现修改文章日期的功能
+    setEditingDate(null);
+  };
+
   return (
     <div className="min-h-screen bg-white">
       <Navbar />
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24">
-        <div className="text-center mb-12 flex items-center justify-center gap-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">很晚才睡</h1>
-            <p className="text-lg text-gray-600 mb-2">阅读与思考，真理与自由</p>
-            <p className="text-base text-gray-500 mb-4">一个还在重新学习，重塑思想的开发者</p>
-            <div className="flex justify-center items-center space-x-4 text-sm text-gray-500">
-              <Link href="/rss" className="hover:text-gray-900">RSS订阅</Link>
-              <span>・</span>
-              <Link href="/donate" className="hover:text-gray-900">赞赏</Link>
-              <span>・</span>
-              <Link href="https://twitter.com" className="hover:text-gray-900">X</Link>
-              <span>・</span>
-              <Link href="https://xiaohongshu.com" className="hover:text-gray-900">小红书</Link>
-            </div>
-          </div>
-          <Image
-            src="/true-duck.png"
-            alt="Duck Avatar"
-            width={80}
-            height={80}
-            className="rounded-full"
-          />
+        <div className="text-center mb-12">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">管理文章</h1>
+          <p className="text-lg text-gray-600">在这里管理你的所有文章</p>
         </div>
         <div className="mt-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-8">
@@ -82,13 +69,28 @@ export default function Home() {
             <div className="lg:w-3/4">
               <div className="space-y-8">
                 {blogPosts.map((post) => (
-                  <Link href={`/blog/${post.id}`} key={post.id} className="block">
+                  <div key={post.id} className="block">
                     <div className="relative flex items-start space-x-6 p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200">
-
+                      <button
+                        onClick={() => {
+                          if (window.confirm('确定要删除这篇文章吗？')) {
+                            deletePost(post.id);
+                            setBlogPosts(getPosts(selectedTag));
+                            setTags(getAllTags());
+                          }
+                        }}
+                        className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors duration-200"
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                        </svg>
+                      </button>
                       <div className="flex-1">
                         <div className="mb-2">
                           <div className="flex items-center gap-2">
-                            <h3 className="text-xl font-semibold text-gray-900">{post.title}</h3>
+                            <Link href={`/blog/${post.id}`} className="text-xl font-semibold text-gray-900 hover:text-blue-600">
+                              {post.title}
+                            </Link>
                             {post.isFeatured && (
                               <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">Featured</span>
                             )}
@@ -105,10 +107,27 @@ export default function Home() {
                             .slice(0, 100) // 限制预览内容长度
                             + '...'}
                         </p>
-                        <div className="text-sm text-gray-500">{post.date}</div>
+                        <div className="text-sm text-gray-500">
+                          {editingDate === post.id ? (
+                            <input
+                              type="datetime-local"
+                              defaultValue={post.date.replace(' ', 'T')}
+                              onChange={(e) => handleDateChange(post.id, e.target.value)}
+                              onBlur={() => setEditingDate(null)}
+                              className="border border-gray-300 rounded px-2 py-1"
+                            />
+                          ) : (
+                            <button
+                              onClick={() => setEditingDate(post.id)}
+                              className="hover:text-blue-600"
+                            >
+                              {post.date}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
