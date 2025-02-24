@@ -35,11 +35,15 @@ export default function BlogPost() {
 
   // 解析文章内容中的标题，生成目录结构
   const generateToc = (content: string) => {
+    if (!content) return [];
+    
     const headings = content.match(/^#{1,6}\s+[^\n]+/gm) || [];
     return headings.map((heading) => {
-      const level = heading.match(/^#+/)?.[0].length || 1;
-      const text = heading.replace(/^#+\s+/, '').replace(/[\[\]\(\)\*`]/g, '');
-      const id = text.toLowerCase().replace(/\s+/g, '-');
+      const level = (heading.match(/^#+/) || [''])[0].length;
+      const text = heading
+        .replace(/^#+\s+/, '') // 移除标题标记
+        .trim(); // 移除首尾空格
+      const id = String(text).toLowerCase().replace(/\s+/g, '-');
       return { id, text, level };
     });
   };
@@ -55,24 +59,37 @@ export default function BlogPost() {
         top: heading.getBoundingClientRect().top,
       }));
 
-      const currentHeading = headingPositions.find((heading) => heading.top > 0) || headingPositions[0];
+      // 找到第一个在视口上方的标题
+      const currentHeading = headingPositions
+        .filter(heading => heading.top <= 100) // 考虑导航栏的高度
+        .slice(-1)[0] || headingPositions[0];
+
       if (currentHeading) {
         setActiveId(currentHeading.id);
       }
     };
 
     window.addEventListener('scroll', handleScroll);
+    handleScroll(); // 初始化时执行一次
     return () => window.removeEventListener('scroll', handleScroll);
   }, [post]);
 
   useEffect(() => {
-    const postId = params.id as string;
-    const foundPost = getPostById(postId);
-    if (foundPost) {
-      setPost(foundPost);
-      document.title = foundPost.title;
-      setToc(generateToc(foundPost.content));
-    }
+    const fetchPost = async () => {
+      try {
+        const postId = params.id as string;
+        const foundPost = await getPostById(postId);
+        if (foundPost) {
+          setPost(foundPost);
+          document.title = foundPost.title;
+          setToc(generateToc(foundPost.content));
+        }
+      } catch (error) {
+        console.error('获取文章失败:', error);
+      }
+    };
+    
+    fetchPost();
   }, [params.id]);
 
   if (!post) {
@@ -98,10 +115,21 @@ export default function BlogPost() {
                     <a
                       key={item.id}
                       href={`#${item.id}`}
-                      className={`block py-1 pl-${(item.level - 1) * 4} text-sm ${activeId === item.id ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'}`}
+                      className={`block py-1.5 ${activeId === item.id ? 'text-blue-600 font-medium' : 'text-gray-600 hover:text-gray-900'} transition-colors duration-200`}
+                      style={{ paddingLeft: `${(item.level - 1) * 16}px` }}
                       onClick={(e) => {
                         e.preventDefault();
-                        document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth' });
+                        const element = document.getElementById(item.id);
+                        if (element) {
+                          const navbarHeight = 80; // 导航栏高度
+                          const elementPosition = element.getBoundingClientRect().top + window.scrollY;
+                          const offsetPosition = elementPosition - navbarHeight;
+
+                          window.scrollTo({
+                            top: offsetPosition,
+                            behavior: 'smooth'
+                          });
+                        }
                       }}
                     >
                       {item.text}
@@ -122,9 +150,9 @@ export default function BlogPost() {
                           Featured
                         </span>
                       )}
-                      {post.tags.map((tag) => (
+                      {post.tags && post.tags.map((tag, index) => (
                         <span
-                          key={tag}
+                          key={`${tag}-${index}`}
                           className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded"
                         >
                           {tag}

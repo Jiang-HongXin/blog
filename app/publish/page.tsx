@@ -28,7 +28,7 @@ export default function PublishPage() {
     setIsSubmitting(true);
 
     try {
-      const newPost = addPost({
+      const newPost = await addPost({
         title,
         content,
         tags: tags.split(',').map(tag => tag.trim())

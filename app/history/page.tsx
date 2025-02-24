@@ -27,33 +27,37 @@ export default function HistoryPage() {
 
   useEffect(() => {
     document.title = '历史文章';
-    const posts = getPosts();
-    const grouped = posts.reduce((acc: GroupedPosts, post) => {
-      const date = new Date(post.date);
-      const year = date.getFullYear().toString();
-      const month = (date.getMonth() + 1).toString().padStart(2, '0');
-      
-      if (!acc[year]) acc[year] = {};
-      if (!acc[year][month]) acc[year][month] = [];
-      
-      acc[year][month].push(post);
-      return acc;
-    }, {});
-
-    // 按年份和月份排序
-    const sortedGrouped = Object.keys(grouped)
-      .sort((a, b) => parseInt(b) - parseInt(a))
-      .reduce((acc: GroupedPosts, year) => {
-        acc[year] = Object.keys(grouped[year])
-          .sort((a, b) => parseInt(b) - parseInt(a))
-          .reduce((monthAcc: { [key: string]: Post[] }, month) => {
-            monthAcc[month] = grouped[year][month];
-            return monthAcc;
-          }, {});
+    const fetchPosts = async () => {
+      const posts = await getPosts();
+      const grouped = posts.reduce((acc: GroupedPosts, post) => {
+        const date = new Date(post.date);
+        const year = date.getFullYear().toString();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        
+        if (!acc[year]) acc[year] = {};
+        if (!acc[year][month]) acc[year][month] = [];
+        
+        acc[year][month].push(post);
         return acc;
       }, {});
 
-    setGroupedPosts(sortedGrouped);
+      // 按年份和月份排序
+      const sortedGrouped = Object.keys(grouped)
+        .sort((a, b) => parseInt(b) - parseInt(a))
+        .reduce((acc: GroupedPosts, year) => {
+          acc[year] = Object.keys(grouped[year])
+            .sort((a, b) => parseInt(b) - parseInt(a))
+            .reduce((monthAcc: { [key: string]: Post[] }, month) => {
+              monthAcc[month] = grouped[year][month];
+              return monthAcc;
+            }, {});
+          return acc;
+        }, {});
+
+      setGroupedPosts(sortedGrouped);
+    };
+
+    fetchPosts();
   }, []);
 
   return (
@@ -79,9 +83,8 @@ export default function HistoryPage() {
                           >
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <h4 className="text-lg font-medium text-gray-900 mb-1">{post.title}</h4>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-500">{post.date.split(' ')[0]}</span>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h4 className="text-lg font-medium text-gray-900">{post.title}</h4>
                                   {post.tags.map((tag) => (
                                     <span
                                       key={tag}
@@ -91,6 +94,7 @@ export default function HistoryPage() {
                                     </span>
                                   ))}
                                 </div>
+                                <span className="text-sm text-gray-500">{post.date}</span>
                               </div>
                             </div>
                           </Link>

@@ -31,12 +31,6 @@ export default function Navbar() {
                 历史文章
               </Link>
               <Link
-                href="/manage"
-                className="text-gray-900 hover:text-gray-600 px-3 py-2 text-sm font-medium"
-              >
-                管理文章
-              </Link>
-              <Link
                 href="/trash"
                 className="text-gray-900 hover:text-gray-600 px-3 py-2 text-sm font-medium"
               >
@@ -47,9 +41,6 @@ export default function Navbar() {
           <div className="flex items-center space-x-4">
             <Link href="/upload" className="bg-green-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700">
               上传文章
-            </Link>
-            <Link href="/publish" className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700">
-              发布文章
             </Link>
           </div>
         </div>

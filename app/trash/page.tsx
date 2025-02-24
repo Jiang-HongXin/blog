@@ -25,22 +25,46 @@ export default function TrashPage() {
     fetchDeletedPosts();
   }, []);
 
-  const fetchDeletedPosts = () => {
-    const posts = getDeletedPosts();
-    setDeletedPosts(posts);
-  };
-
-  const handleRestore = (id: string) => {
-    if (window.confirm('确定要恢复这篇文章吗？')) {
-      restorePost(id);
-      fetchDeletedPosts();
+  const fetchDeletedPosts = async () => {
+    try {
+      const posts = await getDeletedPosts();
+      setDeletedPosts(posts);
+    } catch (error) {
+      console.error('获取已删除文章失败:', error);
+      setDeletedPosts([]);
     }
   };
 
-  const handlePermanentDelete = (id: string) => {
+  const handleRestore = async (id: string) => {
+    if (window.confirm('确定要恢复这篇文章吗？')) {
+      try {
+        await restorePost(id);
+        await fetchDeletedPosts();
+      } catch (error) {
+        console.error('恢复文章失败:', error);
+      }
+    }
+  };
+
+  const handlePermanentDelete = async (id: string) => {
     if (window.confirm('确定要永久删除这篇文章吗？此操作不可恢复！')) {
-      permanentlyDeletePost(id);
-      fetchDeletedPosts();
+      try {
+        await permanentlyDeletePost(id);
+        await fetchDeletedPosts();
+      } catch (error) {
+        console.error('永久删除文章失败:', error);
+      }
+    }
+  };
+
+  const handleClearTrash = async () => {
+    if (window.confirm('确定要清空回收站吗？此操作将永久删除所有文章且不可恢复！')) {
+      try {
+        await Promise.all(deletedPosts.map(post => permanentlyDeletePost(post.id)));
+        await fetchDeletedPosts();
+      } catch (error) {
+        console.error('清空回收站失败:', error);
+      }
     }
   };
 
@@ -49,7 +73,17 @@ export default function TrashPage() {
       <Navbar />
       <div className="py-8 pt-24">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">回收站</h1>
+          <div className="flex justify-between items-center mb-8">
+            <h1 className="text-3xl font-bold text-gray-900">回收站</h1>
+            {deletedPosts.length > 0 && (
+              <button
+                onClick={handleClearTrash}
+                className="bg-red-600 hover:bg-red-700 text-white font-medium px-4 py-2 rounded-lg text-sm"
+              >
+                清空回收站
+              </button>
+            )}
+          </div>
           {deletedPosts.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500">回收站是空的</p>

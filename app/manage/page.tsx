@@ -20,18 +20,20 @@ export default function ManagePage() {
 
   useEffect(() => {
     document.title = '管理文章';
-    const fetchData = () => {
-      const posts = getPosts(selectedTag);
+    const fetchData = async () => {
+      const posts = await getPosts(selectedTag);
       setBlogPosts(posts);
-      setTags(getAllTags());
+      const allTags = await getAllTags();
+      setTags(allTags);
     };
     
     fetchData();
   }, [selectedTag]);
 
-  const handleDateChange = (postId: string, newDate: string) => {
-    updatePostDate(postId, newDate);
-    setBlogPosts(getPosts(selectedTag));
+  const handleDateChange = async (postId: string, newDate: string) => {
+    await updatePostDate(postId, newDate);
+    const posts = await getPosts(selectedTag);
+    setBlogPosts(posts);
     setEditingDate(null);
   };
 
@@ -72,11 +74,13 @@ export default function ManagePage() {
                   <div key={post.id} className="block">
                     <div className="relative flex items-start space-x-6 p-6 bg-white rounded-lg shadow-lg hover:shadow-xl transition-shadow duration-200">
                       <button
-                        onClick={() => {
+                        onClick={async () => {
                           if (window.confirm('确定要删除这篇文章吗？')) {
-                            deletePost(post.id);
-                            setBlogPosts(getPosts(selectedTag));
-                            setTags(getAllTags());
+                            await deletePost(post.id);
+                            const posts = await getPosts(selectedTag);
+                            setBlogPosts(posts);
+                            const allTags = await getAllTags();
+                            setTags(allTags);
                           }
                         }}
                         className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-colors duration-200"

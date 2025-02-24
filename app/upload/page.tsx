@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { addPost } from '@/app/services/posts';
+import { addPost, getAllTags } from '@/app/services/posts';
 import Navbar from '@/app/components/Navbar';
 
 export default function UploadPage() {
@@ -10,32 +10,50 @@ export default function UploadPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [tags, setTags] = useState('');
+  const [availableTags, setAvailableTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState('');
   const [parsedContent, setParsedContent] = useState<{ title: string; content: string } | null>(null);
 
   useEffect(() => {
     document.title = '上传文章';
   }, []);
 
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const allTags = await getAllTags();
+        setAvailableTags(allTags);
+      } catch (error) {
+        console.error('获取标签失败:', error);
+      }
+    };
+    fetchTags();
+  }, []);
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
+  
     if (!file.name.endsWith('.md')) {
       setError('请上传 Markdown 格式的文件');
       return;
     }
-
+  
     setIsUploading(true);
     setError(null);
-
+  
     try {
       const content = await file.text();
-      const { body } = parseMarkdown(content);
+      const { body, tags } = parseMarkdown(content);
       setParsedContent({
         title: file.name.replace(/\.md$/, ''),
         content: body
       });
+      setSelectedTags(tags);
+      // 在文件上传后立即显示标签输入框
+      setTagInput(' ');
+      setTagInput('');
     } catch (err) {
       setError('解析文件失败，请确保文件格式正确');
       console.error('上传失败:', err);
@@ -44,14 +62,14 @@ export default function UploadPage() {
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!parsedContent) return;
-
+  
     try {
-      const newPost = addPost({
+      const newPost = await addPost({
         title: parsedContent.title,
         content: parsedContent.content,
-        tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0)
+        tags: selectedTags.length > 0 ? selectedTags : []
       });
       router.push(`/blog/${newPost.id}`);
     } catch (err) {
@@ -60,22 +78,68 @@ export default function UploadPage() {
     }
   };
 
+  const handleTagSelect = (tag: string) => {
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags([...selectedTags, tag]);
+    }
+    setTagInput('');
+  };
+
+  const handleTagRemove = (tagToRemove: string) => {
+    setSelectedTags(selectedTags.filter(tag => tag !== tagToRemove));
+  };
+
+  const handleTagInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTagInput(e.target.value);
+  };
+
+  const handleTagInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      if (!selectedTags.includes(newTag)) {
+        setSelectedTags([...selectedTags, newTag]);
+      }
+      setTagInput('');
+    }
+  };
+
   const parseMarkdown = (content: string) => {
     const lines = content.split('\n');
-    let title = '';
     let bodyStart = 0;
-
-    // 查找标题（第一个 # 开头的行）
-    const titleLine = lines.findIndex(line => line.startsWith('# '));
-    if (titleLine !== -1) {
-      title = lines[titleLine].replace('# ', '').trim();
-      bodyStart = titleLine + 1;
+    let tags: string[] = [];
+  
+    // 检查是否有 frontmatter
+    if (lines[0]?.trim() === '---') {
+      const frontmatterEndIndex = lines.findIndex((line, index) => index > 0 && line.trim() === '---');
+      if (frontmatterEndIndex !== -1) {
+        // 解析 frontmatter
+        const frontmatter = lines.slice(1, frontmatterEndIndex);
+        frontmatter.forEach(line => {
+          const [key, value] = line.split(':').map(part => part.trim());
+          if (key === 'tags') {
+            // 改进标签解析逻辑
+            try {
+              // 尝试解析 JSON 格式
+              tags = JSON.parse(value || '[]');
+            } catch {
+              // 如果不是 JSON 格式，则按照逗号分隔的字符串处理
+              tags = value
+                .replace(/[\[\]'"]/g, '') // 移除方括号和引号
+                .split(',') // 按逗号分隔
+                .map(tag => tag.trim()) // 移除空白
+                .filter(tag => tag.length > 0); // 移除空标签
+            }
+          }
+        });
+        bodyStart = frontmatterEndIndex + 1;
+      }
     }
-
+  
     // 提取正文内容
     const body = lines.slice(bodyStart).join('\n').trim();
-
-    return { title, body };
+  
+    return { body, tags };
   };
 
   const handleDragOver = (event: React.DragEvent) => {
@@ -134,22 +198,62 @@ export default function UploadPage() {
               <div className="space-y-6">
                 <div>
                   <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
-                    标签（用逗号分隔）
+                    标签
                   </label>
-                  <input
-                    type="text"
-                    id="tags"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    placeholder="技术, 编程, Web开发"
-                  />
+                  <div className="mt-1 relative">
+                    <div className="flex flex-wrap gap-2 p-2 border rounded-md bg-white">
+                      {selectedTags.map((tag) => (
+                        <span
+                          key={tag}
+                          className="inline-flex items-center px-2 py-1 rounded-md text-sm font-medium bg-blue-100 text-blue-800"
+                        >
+                          {tag}
+                          <button
+                            type="button"
+                            onClick={() => handleTagRemove(tag)}
+                            className="ml-1 inline-flex text-blue-400 hover:text-blue-600"
+                          >
+                            <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
+                            </svg>
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        type="text"
+                        value={tagInput}
+                        onChange={handleTagInputChange}
+                        onKeyDown={handleTagInputKeyDown}
+                        className="flex-1 outline-none min-w-[120px]"
+                        placeholder="输入或选择标签"
+                      />
+                    </div>
+                    {tagInput && (
+                      <ul className="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm">
+                        {availableTags
+                          .filter(tag => 
+                            tag.toLowerCase().includes(tagInput.toLowerCase()) &&
+                            !selectedTags.includes(tag)
+                          )
+                          .map((tag) => (
+                            <li
+                              key={tag}
+                              className="relative cursor-pointer select-none py-2 pl-3 pr-9 text-gray-900 hover:bg-blue-50"
+                              onClick={() => handleTagSelect(tag)}
+                            >
+                              {tag}
+                            </li>
+                          ))}
+                      </ul>
+                    )}
+                  </div>
                 </div>
                 <div className="flex justify-end space-x-4">
                   <button
                     onClick={() => {
                       setParsedContent(null);
-                      setTags('');
+                      setSelectedTags([]);
+                      setTagInput('');
                       setError(null);
                     }}
                     className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
